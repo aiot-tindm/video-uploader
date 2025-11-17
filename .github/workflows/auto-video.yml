@@ -1,0 +1,62 @@
+name: Auto Shopee Video Generator
+
+on:
+  schedule:
+    # Run every Sunday at 10:00 AM UTC (5:00 PM Vietnam time)
+    - cron: '0 10 * * 0'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  generate-and-upload:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm install
+      
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+        
+    - name: Create Google Cloud credentials file
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      run: |
+        mkdir -p src/config
+        echo "$GOOGLE_CREDENTIALS" > src/config/google-credentials.json
+        
+    - name: Run video generation and upload
+      env:
+        YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+        YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+        YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        GOOGLE_CLOUD_PROJECT_ID: ${{ secrets.GOOGLE_CLOUD_PROJECT_ID }}
+        GOOGLE_APPLICATION_CREDENTIALS: ./src/config/google-credentials.json
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        npm start
+        
+    - name: Clean up sensitive files
+      if: always()
+      run: |
+        rm -f src/config/google-credentials.json
+        rm -rf output/
+        
+    - name: Upload logs as artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: execution-logs
+        path: logs/
+        retention-days: 7
