@@ -26,35 +26,35 @@ export class AutoVideoSystem {
 
   async run(): Promise<void> {
     this.logger.log('info', '🚀 Starting Auto Shopee Video System...');
-    
+
     try {
       // Step 1: Initialize components
       await this.initialize();
-      
+
       // Step 2: Scrape Shopee products
       const products = await this.scrapeProducts();
-      
+
       // Step 3: Generate TTS audio
       const audioPath = await this.generateAudio(products);
-      
+
       // Step 4: Generate video
       const videoPath = await this.generateVideo(products, audioPath);
-      
+
       // Step 5: Upload to YouTube
       const uploadResult = await this.uploadVideo(videoPath, products);
-      
+
       // Step 6: Send notifications
       await this.sendNotifications(uploadResult);
-      
-      // Step 7: Cleanup
-      await this.cleanup();
-      
+
       this.logger.log('success', '✅ Auto video system completed successfully!');
-      
+
     } catch (error: any) {
       this.logger.log('error', '❌ System failed:', error.message);
       await this.notifier.sendErrorNotification(error);
-      process.exit(1);
+      throw error; // Re-throw to ensure finally block runs before exit
+    } finally {
+      // Step 7: Cleanup - always runs even if errors occur
+      await this.cleanup();
     }
   }
 
