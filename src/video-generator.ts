@@ -183,31 +183,35 @@ export class VideoGenerator {
     }
 
     // Create video using FFmpeg
-    return new Promise(async (resolve, reject) => {
-      const command = ffmpeg()
-        .input(path.join(framesDir, 'frame_%06d.png'))
-        .inputFPS(config.video.fps)
-        .videoCodec('libx264')
-        .size(`${config.video.width}x${config.video.height}`)
-        .autopad()
-        .duration(config.video.duration);
+    return new Promise((resolve, reject) => {
+      const buildCommand = async () => {
+        const command = ffmpeg()
+          .input(path.join(framesDir, 'frame_%06d.png'))
+          .inputFPS(config.video.fps)
+          .videoCodec('libx264')
+          .size(`${config.video.width}x${config.video.height}`)
+          .autopad()
+          .duration(config.video.duration);
 
-      // Add audio if provided
-      if (audioPath && await this.fileExists(audioPath)) {
-        command.input(audioPath).audioCodec('aac');
-      }
+        // Add audio if provided
+        if (audioPath && await this.fileExists(audioPath)) {
+          command.input(audioPath).audioCodec('aac');
+        }
 
-      command
-        .output(videoPath)
-        .on('end', () => {
-          console.log('✅ Video generated successfully:', videoPath);
-          resolve(videoPath);
-        })
-        .on('error', (error) => {
-          console.error('❌ Video generation failed:', error);
-          reject(error);
-        })
-        .run();
+        command
+          .output(videoPath)
+          .on('end', () => {
+            console.log('✅ Video generated successfully:', videoPath);
+            resolve(videoPath);
+          })
+          .on('error', (error) => {
+            console.error('❌ Video generation failed:', error);
+            reject(error);
+          })
+          .run();
+      };
+
+      buildCommand().catch(reject);
     });
   }
 
